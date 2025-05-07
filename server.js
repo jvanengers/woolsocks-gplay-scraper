@@ -1,3 +1,7 @@
+const express = require('express');
+const gplay = require('google-play-scraper');
+const app = express();
+
 app.get('/reviews', async (req, res) => {
   const appId = req.query.appId;
   const lang = req.query.lang || 'en';
@@ -24,7 +28,6 @@ app.get('/reviews', async (req, res) => {
       });
 
       allReviews.push(...data);
-
       if (!nextPaginationToken || data.length === 0) break;
 
       nextToken = nextPaginationToken;
@@ -34,4 +37,9 @@ app.get('/reviews', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.toString() });
   }
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Google Play Reviews API listening on port ${port}`);
 });
