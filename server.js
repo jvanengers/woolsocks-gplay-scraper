@@ -7,30 +7,38 @@ app.get('/reviews', async (req, res) => {
   const lang = req.query.lang || 'en';
   const country = req.query.country || 'us';
   const maxReviews = parseInt(req.query.max) || 200;
+  const daysAgo = parseInt(req.query.daysAgo) || 30;
 
   if (!appId) {
     return res.status(400).json({ error: 'Missing appId query parameter' });
   }
 
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
+
   try {
     let allReviews = [];
     let nextToken = undefined;
 
-    while (allReviews.length < maxReviews) {
+    while (true) {
       const { data, nextPaginationToken } = await gplay.reviews({
         appId,
         lang,
         country,
         sort: gplay.sort.NEWEST,
-        num: 40,
         paginate: true,
         nextPaginationToken: nextToken
       });
 
-      allReviews.push(...data);
-      if (!nextPaginationToken || data.length === 0) break;
+      const recentReviews = data.filter(review => new Date(review.date) >= cutoffDate);
+      allReviews.push(...recentReviews);
+
+      if (!nextPaginationToken || recentReviews.length === 0 || allReviews.length >= maxReviews) break;
 
       nextToken = nextPaginationToken;
+
+      // Introduce a delay between requests
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 1-second delay
     }
 
     res.json(allReviews.slice(0, maxReviews));
